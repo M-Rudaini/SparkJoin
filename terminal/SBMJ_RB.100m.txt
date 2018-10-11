@@ -1,0 +1,71 @@
+Using Spark's default log4j profile: org/apache/spark/log4j-defaults.properties
++-------+----------+---------+---------+--------------------+-----------+----------+--------+--------------------+--------------------+----------------+---------------+--------------------+
+|User_ID|First_Name|Last_name|      DOP|             Address|       City|State_Abbr|Zip_Code|             Country|        Phone_Number|       User_Name|       Password|               Email|
++-------+----------+---------+---------+--------------------+-----------+----------+--------+--------------------+--------------------+----------------+---------------+--------------------+
+|      1|    Willie|  Pacocha|1974-4-24|3674 Gladys Mount...|Reichelfurt|        IA|   30881|United States of ...|(577) 225-8182 x9032|Willie_Pacocha19|XbvxHMYXLCBycTX|Willie.Pacocha67@...|
++-------+----------+---------+---------+--------------------+-----------+----------+--------+--------------------+--------------------+----------------+---------------+--------------------+
+only showing top 1 row
+
+root
+ |-- User_ID: long (nullable = true)
+ |-- First_Name: string (nullable = true)
+ |-- Last_name: string (nullable = true)
+ |-- DOP: string (nullable = true)
+ |-- Address: string (nullable = true)
+ |-- City: string (nullable = true)
+ |-- State_Abbr: string (nullable = true)
+ |-- Zip_Code: string (nullable = true)
+ |-- Country: string (nullable = true)
+ |-- Phone_Number: string (nullable = true)
+ |-- User_Name: string (nullable = true)
+ |-- Password: string (nullable = true)
+ |-- Email: string (nullable = true)
+
++-------+--------------+
+|User_ID|     Full_Name|
++-------+--------------+
+|      1|Willie Pacocha|
++-------+--------------+
+only showing top 1 row
+
+root
+ |-- User_ID: long (nullable = true)
+ |-- Full_Name: string (nullable = true)
+
++----------+------+-------+-----------+----------+
+|Invoice_ID|   UID|Product|Unit_Amount|Unit_Price|
++----------+------+-------+-----------+----------+
+|         1|224616|  Mouse|         22|      85.0|
++----------+------+-------+-----------+----------+
+only showing top 1 row
+
+root
+ |-- Invoice_ID: long (nullable = true)
+ |-- UID: long (nullable = true)
+ |-- Product: string (nullable = true)
+ |-- Unit_Amount: integer (nullable = true)
+ |-- Unit_Price: float (nullable = true)
+
++-----+--------------+
+|  UID|Total_Purchase|
++-----+--------------+
+|22129|       42871.0|
++-----+--------------+
+only showing top 1 row
+
+root
+ |-- UID: long (nullable = true)
+ |-- Total_Purchase: double (nullable = true)
+
++-------+--------------+--------------+
+|User_ID|     Full_Name|Total_Purchase|
++-------+--------------+--------------+
+|     26|Skye Heathcote|       21384.0|
++-------+--------------+--------------+
+only showing top 1 row
+
+root
+ |-- User_ID: long (nullable = true)
+ |-- Full_Name: string (nullable = true)
+ |-- Total_Purchase: double (nullable = true)
+
