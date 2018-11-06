@@ -1,89 +1,55 @@
-package InnerJoins.SCoreRDD
-
-import org.apache.log4j.{Level, Logger}
-import org.apache.spark._
-import ScalaWriter.Writer.Write //to Write time
-
-// Initializing the Semi-Processed Inner-Join Using Reduce By Key..
-object SPIJ_RBK {
-  //Defining the main method..
-  def main(args: Array[String]): Unit = {
-    //Setting logining levels..
-    Logger.getLogger("org").setLevel(Level.ERROR)
-    Logger.getLogger("akka").setLevel(Level.ERROR)
-    //Creating the Spark Core Configuration..
-    val conf = new SparkConf().setMaster("local[2]")
-      .setAppName("RDD_SPIJ_RBK")
-    //Creating Spark Context using Spark Core Config..
-    val sc =new SparkContext(conf)
-
-    //Current time point log..
-    val t0 = System.currentTimeMillis()
-
-    // -Load Users File
-    val InUserFile = sc.textFile(args(0))
-
-    // -Load Purchase File
-    val InPurchaseFile = sc.textFile(args(1))
-    val t1 = System.currentTimeMillis()
-
-    // -Filtering the Header Line
-    val RDD1 =  InUserFile.filter(!_.contains("User_ID"))
-
-    // -Mapping Remaining Lines
-    // --Splitting line Values
-    val RDD2 = RDD1.map(line => line.split(","))
-
-    // --Taking User ID value (index 0),
-    // --Concating First (index 1) and Last (index 2) names with Space between them
-    // -Ignoring unwanted values
-    val UserRDD = RDD2.map(Array => (Array(0), Array(1)+" "+Array(2)))
-
-    //Printing the first 10 lines..
-    UserRDD.take(10).foreach(println)
-
-    // -Filtering the Header Line
-    val RDD3 = InPurchaseFile.filter(!_.contains("User_ID"))
-
-    // -Mapping Remaining Lines
-    // --Splitting line Values
-    val RDD4 = RDD3.map(line => line.split(","))
-
-    // --Taking User ID value (index 1),
-    // --Multiplying No of Units (index 3) by Unit Price (index 4)
-    // -Ignoring unwanted values
-    val PurchaseRDD = RDD4.map(Array => (Array(1), (Array(3).toFloat*Array(4).toFloat).toInt))
-
-    //Printing the first 10 lines..
-    PurchaseRDD.take(10).foreach(println)
-
-    val t2 = System.currentTimeMillis()
-    //Joining the two RDDs...
-    val UPRDD1 = UserRDD.join(PurchaseRDD)
-
-    val t3 = System.currentTimeMillis()
-
-    //Reducing By Key...
-    val UserPurchase = UPRDD1.reduceByKey((x,y)=> (x._1, x._2+y._2))
-
-    //Printing the first 10 lines..
-    UserPurchase.take(10).foreach(println)
-
-
-    val t4 = System.currentTimeMillis()
-    //    UserPurchase.coalesce(1).saveAsTextFile(args(2))
-
-    val t5 = System.currentTimeMillis()
-    val TRead = t1-t0
-    val TPre = t2-t1
-    val TJoin = t3-t2
-    val TPost = t4-t3
-    val TWrite = t5-t4
-    println("Read, Pre-Processing, Join, Post-Processing, Write")
-    val Line = TRead+","+TPre+","+TJoin+","+TPost+","+TWrite
-    println(Line)
-    Write(Line,"RDD.SPIJ.RBK.csv")
-
-    sc.stop()
-  }
-}
+1.	package InnerJoins.SCoreRDD
+2.	import org.apache.log4j.{Level, Logger}
+3.	import org.apache.spark._
+4.	//  Initializing the RDD Semi-Processed Inner-Join Using Reduce by Key.
+5.	object SPIJ_RBK {
+6.	    // Defining the main method.
+7.	    def main(args: Array[String]): Unit = {
+8.	         // Setting the logger levels.
+9.	        Logger.getLogger("org").setLevel(Level.ERROR)
+10.	        Logger.getLogger("akka").setLevel(Level.ERROR)
+11.	        // Creating the Spark Core Configuration.
+12.	        val conf = new SparkConf().setAppName("RDD_SPIJ_RBK")
+13.	       // -Creating Spark Context using Spark Core Configuration.
+14.	       val sc =new SparkContext(conf)
+15.	       //  -Load Users File.
+16.	       val InUserFile = sc.textFile(args(0))
+17.	          //  -Filtering the Header Line.
+18.	          .filter(!_.contains("User_ID"))
+19.	          //  -Mapping Remaining Lines.
+20.	          //  --Splitting line Values.
+21.	          .map(line => line.split(","))
+22.	          //  --Taking User ID value (index 0).
+23.	          //  --Merging First Name (index 1), Space “ “, and Last Name (index 2).
+24.	         .map(Array => (Array(0), Array(1)+" "+Array(2)))
+25.	        .persist() //  Caching.
+26.	      // Printing the first 10 lines.
+27.	      InUserFile.take(10).foreach(println)
+28.	    //  -Load Purchase File.
+29.	    val InPurchaseFile = sc.textFile(args(1))
+30.	    //  -Filtering the Header Line.
+31.	    .filter(!_.contains("User_ID"))
+32.	    //  -Mapping Remaining Lines.
+33.	    //  --Splitting line Values.
+34.	    .map(line => line.split(","))
+35.	    //  --Taking User ID value (index 1).
+36.	    //  --Multiplying No of Units (index 3) by Unit Price (index 4).
+37.	    //  -Ignoring unwanted values.
+38.	    .map(Array => (Array(1), (Array(3).toFloat*Array(4).toFloat).toInt))
+39.	    .persist()     //  Caching.
+40.	    // Printing the first 10 lines.
+41.	    InPurchaseFile.take(10).foreach(println)
+42.	    // Joining the two RDDs.
+43.	    val UserPurchase = InUserFile.join(InPurchaseFile)
+44.	    // Reducing by Key.
+45.	    // Summing all the total prices to get the total purchase for each user.
+46.	    .reduceByKey((x,y)=> (x._1, x._2+y._2))
+47.	    .persist()      //  Caching.
+48.	    //  Printing the first 10 lines.
+49.	    UserPurchase.take(10).foreach(println)
+50.	    //  Saving the file.
+51.	    UserPurchase.saveAsTextFile(args(2))
+52.	    //  Stopping the Spark Context.
+53.	    sc.stop()
+54.	  }
+55.	}
