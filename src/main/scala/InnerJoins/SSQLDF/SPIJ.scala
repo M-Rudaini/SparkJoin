@@ -1,80 +1,56 @@
 package InnerJoins.SSQLDF
-
 import org.apache.log4j._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
-import ScalaWriter.Writer.Write //to Write time
-
-
+//  Initializing the DF Semi-Processed Inner-Join.
 object SPIJ {
-
+  //  Defining the main method.
   def main(args: Array[String]): Unit = {
-    //Setting log Levels...
+    // Setting the logger Levels...
     Logger.getLogger("org").setLevel(Level.ERROR)
     Logger.getLogger("akka").setLevel(Level.ERROR)
-
-    //intializing Spark Session
-        val ss = SparkSession.builder.master("local[2]")
+    // Initializing Spark Session
+        val ss = SparkSession
+          .builder
           .appName("DF_SPIJ")
           .getOrCreate()
-    //To use spark session implicit tools like the "$" operator...
+    // To use spark session implicit tools like the "$" operator...
     import ss.implicits._
-
-    //Current time point log..
-    val t0 = System.currentTimeMillis()
-
-    //loading Users DataFrame...
-    val InUserDF = ss.read.option("header","true").csv(args(0))
-
-    //loading Purchases DataFrame...
-    val InPurchseDF = ss.read.option("header","true").csv(args(1))
-
-    val t1 = System.currentTimeMillis()
-
-    //Selecting the Required Columns from the Users DataFrame...
-    val UserDF = InUserDF.select($"User_ID", $"First_Name", $"Last_Name")
-
-    //Print the first 10 tuples...
-    UserDF.show(10)
-
-    //Selecting the Required Columns from the Users DataFrame...
-    // to not conflict with the one in the Users DataFrame...
-    val Purchase = InPurchseDF.select($"User_ID", $"Unit_Amount", $"Unit_Price")
-
-    //Print the first 10 tuples...
-    Purchase.show(10)
-
-    val t2 = System.currentTimeMillis()
-
-    // Joining the two DataFrames...
-    val UserPurchase = UserDF.join(Purchase, "User_ID")
-
-    val t3 = System.currentTimeMillis()
-
-    //Grouping the Joined DataFrame
-    //Concatenate first and last names as new column "Full_Name"...
-    val UPDF1 = UserPurchase.groupBy($"User_ID",concat($"First_Name", lit(" "), $"Last_Name")as "Full_Name")
-
-    //Aggrigating:
-    //-Multiply the unit amount by the unit price as new column "Total_Price"...
-    //-Sum all toal prices as "Total_Purchases"...
-    val UserPurchase2 = UPDF1.agg(sum($"Unit_Amount" * $"Unit_Price" as "Total_Price") as "Total_Purchase")
-    UserPurchase2.show(10)
-    val t4 = System.currentTimeMillis()
-
-//    UserPurchase2.coalesce(1).write.csv(args(2))
-
-    val t5 = System.currentTimeMillis()
-    val TRead = t1-t0
-    val TPre = t2-t1
-    val TJoin = t3-t2
-    val TPost = t4-t3
-    val TWrite = t5-t4
-    println("Read, Pre-Processing, Join, Post-Processing, Write")
-    val Line = TRead+","+TPre+","+TJoin+","+TPost+","+TWrite
-    println(Line)
-    Write(Line,"DF.SPIJ.csv")
-
+    // loading Users DataFrame...
+    // Considering the header as Column Names that will be used later...
+    val InUserDF = ss.read.option("header","true")
+     .csv(args(0))  // Source Connector.
+      // Selecting the Required Columns from the Users DataFrame...
+      .select($"User_ID", $"First_Name", $"Last_Name")
+      .persist()   //  Caching the DataFrame contents for further use...
+    InUserDF.show(10)
+    // loading Purchases DataFrame...
+    // Considering the header as Column Names that will be used later...
+    val InPurchseDF = ss.read.option("header","true")
+      .csv(args(1))  // Source Connector.
+      // Selecting the Required Columns from the Users DataFrame...
+      //  to not conflict with the one in the Users DataFrame...
+      .select($"User_ID", $"Unit_Amount", $"Unit_Price")
+      .persist()  //  Caching the DataFrame contents for further use...
+    // Print the first 10 tuples...
+    InPurchseDF.show(10)
+    //  Joining the two DataFrames...
+    val UserPurchase = InUserDF.join(InPurchseDF, "User_ID")
+     .persist()  //  Caching DataFrame Contents.
+      // Grouping the Joined DataFrame
+      // Concatenate first and last names as new column "Full_Name"...
+      .groupBy($"User_ID",concat($"First_Name", lit(" "), $"Last_Name")as "Full_Name")
+      // Aggregating:
+      // -Multiply the unit amount by the unit price as new column "Total_Price"...
+      // -Sum all total prices as "Total_Purchases"...
+      .agg(sum($"Unit_Amount" * $"Unit_Price" as "Total_Price") as "Total_Purchase")
+      .persist()   //  Caching DataFrame Contents.
+    // Print the first 10 tuples...
+    UserPurchase.show(10)
+    //  Saving the joined DataFrame to storage.
+    UserPurchase.write.csv(args(2)+"/out.csv")
+    //  Stopping the Spark Session.
     ss.stop()
   }
 }
+
